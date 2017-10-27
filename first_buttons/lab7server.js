@@ -16,9 +16,6 @@ var pool = mysql.createPool(credentials);
 var db = 'benek020';
 var tableName = db + ".till_buttons";
 
-//var buttons=[{"buttonID":1,"left":10,"top":70,"width":100,"label":"hotdogs","invID":1},{"buttonID":2,"left":110,"top":70,"width":100,"label":"hambugers","invID":2},{"buttonID":3,"left":210,"top":70,"width":100,"label":"bannanas","invID":3},{"buttonID":4,"left":10,"top":120,"width":100,"label":"milkduds","invID":4}]; //static buttons
-var buttons = [];
-
 
 var getConnection = function(){
 	return pool.getConnectionAsync().disposer(
@@ -36,16 +33,14 @@ var endPool = function(){
 	pool.end(function(err){});
 };
 
-var getButtons = function(){
+var getButtons = function(response){
 	var buttons = [];
 	query(mysql.format("SELECT * FROM ??;",tableName))
 	.then(function(results){
-		for (button in results){
-			buttons.push(jsonifyButton(button));
-		}
+		buttons = results.map(jsonifyButton);
+		response.send(buttons);
 		endPool;
 	});
-	return Promise.all(buttons);
 };
 
 var jsonifyButton = function(button){
@@ -56,16 +51,19 @@ var jsonifyButton = function(button){
 	var label = button["label"];
 	var invID = button["invID"];
 
-	var buttonString = "{buttonID:" + buttonID + ", left:" + left + ", top:" + topB + ", width:" + width + ", label:" + label +", invID:" + invID +"}";
-
-	return buttonString;
-	//buttons.push(buttonString); 
+	var buttonObj = {"buttonID":buttonID,
+                         "left":left,
+                         "top":topB,
+                         "width":width,
+                         "label":label,
+                         "invID":invID};
+         
+        return buttonObj;
 };
 
 app.use(express.static(__dirname + '/public')); //Serves the web pages
 app.get("/buttons",function(req,res){ // handles the /buttons API
-	getButtons()
-	.then(function(results){res.send(results)});
+	getButtons(res);
 });
 
 app.listen(port);
